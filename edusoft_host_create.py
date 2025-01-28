@@ -1,0 +1,182 @@
+from flask import Flask, request, render_template, redirect, url_for, flash
+import os
+import pandas as pd
+import json
+import requests
+import unicodedata
+
+# Configuración de Flask
+app = Flask(__name__)
+app.secret_key = "secret_key"
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# Zabbix API URL y credenciales
+url = "http://10.177.255.28/zabbix/api_jsonrpc.php"
+username = "Monitoreo"
+password = "MonitoreS1mpl3##"
+
+# Diccionario de IDs
+mapa_ids = {
+    "Los teques": "32",
+    "Maracay": "33",
+    "Valencia": "36",
+    "Barquisimeto": "37",
+    "Caracas": "39",
+    
+    "Feeder-LTQ01": "40",
+    "Feeder-LTQ03": "41",
+    "Feeder-SAN03": "45",
+    "Feeder-MAY01": "69",
+    "Feeder-MAY06": "70",
+    "Feeder-BTO14": "71",
+    "Feeder-CQT01": "72",
+    "Feeder-BTO12": "73",
+    "Feeder-BTO07": "74",
+    "Feeder-MAY05": "75",
+    "Feeder-MAY02": "77",
+    "Feeder-MAY04": "78",
+    "Feeder-MAY03": "79",
+    "Feeder-SD01": "81",
+    "Feeder-SD03": "82",
+    "Feeder-SD02": "93",
+
+    
+    "LTQ-OLT1": "42",
+    "LTQ-OLT2": "43",
+    "LTQ-OLT4": "54",
+    "BTO-OLT1": "46",
+    "BTO-OLT2": "47",
+    "BTO-OLT4": "49",
+    "LTQ-OLT4": "54",
+    "MCY-OLT1": "57",
+    "MCY-OLT2": "58",
+    "MCY-OLT3": "59",
+    "MCY-OLT4": "60",
+    "MCY-OLT5": "61",
+    "MCY-OLT6": "62",
+    "VAL-OLT2": "64",
+    "VAL-OLT5": "67",
+    "SAT-01": "85",
+    "SBG-01": "83",
+    "VTA-01": "95"
+}
+
+# Funciones para Zabbix y procesamiento
+def login_zabbix(url, username, password):
+    data = {
+        "jsonrpc": "2.0",
+        "method": "user.login",
+        "params": {"username": username, "password": password},
+        "id": 1,
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response_json = response.json()
+
+    if "result" in response_json and "error" not in response_json:
+        return response_json["result"]
+    else:
+        raise Exception(f"Error al iniciar sesión: {response_json}")
+
+def create_host(url, auth_token, hostname, hostip, groupids, contact, address, lat, lon, notes):
+    data = {
+        "jsonrpc": "2.0",
+        "method": "host.create",
+        "params": {
+            "host": hostname,
+            "visible": 1,
+            "groups": [{"groupid": groupid} for groupid in groupids],
+            "templates": [{"templateid": "10566"}],
+            "interfaces": [
+                {"type": 1, "main": 1, "useip": 1, "ip": hostip, "dns": "", "port": "10050"}
+            ],
+            "inventory_mode": 0,
+            "inventory": {
+                "contact": contact,
+                "location": address,
+                "location_lat": lat,
+                "location_lon": lon,
+                "notes": "NAP: " + notes,
+            },
+        },
+        "auth": auth_token,
+        "id": 2,
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response_json = response.json()
+
+    if "error" in response_json:
+        raise Exception(f"Error al crear el host: {response_json['error']}")
+    else:
+        return f"Host creado exitosamente. Host ID: {response_json['result']['hostids'][0]}"
+
+def quitar_acentos(cadena):
+    if not isinstance(cadena, str):
+        return cadena
+    cadena = unicodedata.normalize("NFKD", cadena)
+    return "".join(c for c in cadena if not unicodedata.combining(c)).replace("ñ", "n").replace("Ñ", "N")
+
+def obtener_ids(localidad, olt, feeder):
+    ids = ["35", "34", mapa_ids.get(localidad, "ID no encontrado"), mapa_ids.get(olt, "ID no encontrado")]
+    if localidad != "Caracas":
+        ids.append(mapa_ids.get(feeder, "ID no encontrado"))
+    ids.append("90")
+    return ids
+
+def process_excel(file_path):
+    columns = [
+        "Nombre", "Customer", "Localidad", "OLT", "Feeder", 
+        "NAP", "ONT/ONU", "Dirección IP", "Ubicación de la caja NAP (Coordenadas)", 
+        "Dirección", "Numero de telefono"
+    ]
+    df = pd.read_excel(file_path, usecols=columns, dtype={"Numero de telefono": str})
+    df = df.fillna("N/A").astype(str)
+
+    df["Nombre"] = df["Nombre"].apply(quitar_acentos)
+    df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"]
+    data_dict = df.to_dict(orient="records")
+
+    try:
+        auth_token = login_zabbix(url, username, password)
+    except Exception as e:
+        return f"Error al iniciar sesión en Zabbix: {e}"
+
+    resultados = []
+    for row in data_dict:
+        try:
+            hostname = row["hostname"]
+            groupids = obtener_ids(row["Localidad"], row["OLT"], row["Feeder"])
+            latitud = row["Ubicación de la caja NAP (Coordenadas)"].split(",")[0].strip()
+            longitud = row["Ubicación de la caja NAP (Coordenadas)"].split(",")[1].strip()
+            response = create_host(
+                url, auth_token, hostname, row["Dirección IP"], groupids, 
+                row["Numero de telefono"], row["Dirección"], latitud, longitud, row["NAP"]
+            )
+            resultados.append(response)
+        except Exception as e:
+            resultados.append(f"Error al crear host {row['hostname']}: {e}")
+    return resultados
+
+# Rutas Flask
+@app.route("/", methods=["GET", "POST"])
+def upload_file():
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("No se seleccionó un archivo.")
+            return redirect(request.url)
+        file = request.files["file"]
+        if file.filename == "":
+            flash("No se seleccionó un archivo.")
+            return redirect(request.url)
+        if file:
+            file_path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+            file.save(file_path)
+            resultados = process_excel(file_path)
+            return render_template("resultados.html", resultados=resultados)
+    return render_template("upload.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
