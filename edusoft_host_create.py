@@ -136,6 +136,10 @@ def process_excel(file_path):
     df = df.fillna("N/A").astype(str)
 
     df["Nombre"] = df["Nombre"].apply(quitar_acentos)
+
+    df["Nombre"] = df["Nombre"].str.strip()
+    df["Customer"] = df["Customer"].str.strip()
+    df["ONT/ONU"] = df["ONT/ONU"].str.strip()
     df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"]
     data_dict = df.to_dict(orient="records")
 
