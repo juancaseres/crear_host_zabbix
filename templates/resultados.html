@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados del Proceso</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <img src="{{ url_for('static', filename='images/logo_simplefibra.jpg') }}" alt="Logo" class="logo" width="300">
+        
+        <h1>Resumen de resultados</h1>
+        
+        <!-- Mostrar resultados -->
+        <ul class="result-list">
+            {% for resultado in resultados %}
+                <li>{{ resultado }}</li>
+            {% endfor %}
+        </ul>
+        
+        <!-- Botón para volver -->
+        <a href="/" class="back-link">Volver</a>
+
+        <div class="watermark">Powered by Juan Caseres</div>
+    </div>
+</body>
+</html>

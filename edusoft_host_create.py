@@ -63,7 +63,6 @@ mapa_ids = {
     "VTA-01": "95"
 }
 
-# Funciones para Zabbix y procesamiento
 def login_zabbix(url, username, password):
     data = {
         "jsonrpc": "2.0",
@@ -140,7 +139,7 @@ def process_excel(file_path):
     df["Nombre"] = df["Nombre"].str.strip()
     df["Customer"] = df["Customer"].str.strip()
     df["ONT/ONU"] = df["ONT/ONU"].str.strip()
-    df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"]
+    df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"] 
     data_dict = df.to_dict(orient="records")
 
     try:
@@ -164,7 +163,6 @@ def process_excel(file_path):
             resultados.append(f"Error al crear host {row['hostname']}: {e}")
     return resultados
 
-# Rutas Flask
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
