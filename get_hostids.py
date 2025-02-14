@@ -1,5 +1,6 @@
 import json
 import requests
+import pandas as pd
 
 # Reemplaza con tus credenciales y URL de Zabbix
 url = "http://10.177.255.28/zabbix/api_jsonrpc.php"
@@ -27,14 +28,16 @@ def login_zabbix(url, username, password):
     else:
         raise Exception(f"Error al iniciar sesión: {response_json}")
 
-def get_host_groups(url, token):
+def get_hosts(url, token):
     """
-    Obtiene una lista de todos los grupos de hosts y sus IDs.
+    Obtiene una lista de todos los hosts y sus IDs.
     """
     data = {
         "jsonrpc": "2.0",
-        "method": "hostgroup.get",
-        "params": {},
+        "method": "host.get",
+        "params": {
+            "output": ["hostid", "name"]  # Solo obtenemos el ID y el nombre del host
+        },
         "auth": token,
         "id": 2
     }
@@ -44,17 +47,19 @@ def get_host_groups(url, token):
     if "result" in response_json:
         return response_json["result"]
     else:
-        raise Exception(f"Error al obtener los grupos de hosts: {response_json}")
+        raise Exception(f"Error al obtener los hosts: {response_json}")
 
 # Iniciar sesión y obtener el token
 auth_token = login_zabbix(url, username, password)
 
-# Obtener todos los grupos de hosts
-host_groups = get_host_groups(url, auth_token)
+# Obtener todos los hosts
+hosts = get_hosts(url, auth_token)
 
-# Convertir host_groups en un diccionario donde los nombres son las claves y los IDs son los valores
-host_groups_dict = {group['name'].strip(): group['groupid'].strip() for group in host_groups}
+# Crear un DataFrame de pandas con los datos
+df = pd.DataFrame(hosts, columns=["name", "hostid"])
 
-# Imprimir el diccionario
-print(host_groups_dict)
+# Exportar el DataFrame a un archivo Excel
+output_file = "hosts_excel/hosts_zabbix.xlsx"
+df.to_excel(output_file, index=False)
 
+print(f"Datos exportados correctamente a {output_file}")

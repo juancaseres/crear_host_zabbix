@@ -5,6 +5,7 @@ import requests
 url = "http://10.177.255.28/zabbix/api_jsonrpc.php"
 username = "Monitoreo"
 password = "MonitoreS1mpl3##"
+token = "6e788c8acbfd0620c14aba8457ec1736aa44675098d684b8d9536666309b5b2a"
 
 def login_zabbix(url, username, password):
     """
@@ -27,13 +28,13 @@ def login_zabbix(url, username, password):
     else:
         raise Exception(f"Error al iniciar sesión: {response_json}")
 
-def get_host_groups(url, token):
+def get_templates(url, token):
     """
     Obtiene una lista de todos los grupos de hosts y sus IDs.
     """
     data = {
         "jsonrpc": "2.0",
-        "method": "hostgroup.get",
+        "method": "template.get",
         "params": {},
         "auth": token,
         "id": 2
@@ -44,17 +45,14 @@ def get_host_groups(url, token):
     if "result" in response_json:
         return response_json["result"]
     else:
-        raise Exception(f"Error al obtener los grupos de hosts: {response_json}")
+        raise Exception(f"Error al obtener los templates: {response_json}")
 
 # Iniciar sesión y obtener el token
 auth_token = login_zabbix(url, username, password)
 
 # Obtener todos los grupos de hosts
-host_groups = get_host_groups(url, auth_token)
+templates = get_templates(url, auth_token)
 
-# Convertir host_groups en un diccionario donde los nombres son las claves y los IDs son los valores
-host_groups_dict = {group['name'].strip(): group['groupid'].strip() for group in host_groups}
-
-# Imprimir el diccionario
-print(host_groups_dict)
-
+# Imprimir los IDs y nombres de los grupos
+for template in templates:
+    print(f"ID: {template['templateid']}, Nombre: {template['name']}")
