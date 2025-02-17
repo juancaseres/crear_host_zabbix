@@ -41,6 +41,7 @@ def create_host(url, auth_token, hostname, hostip, mac_add, groupids, contact, a
         "method": "host.create",
         "params": {
             "host": hostname,
+            "description": "NAP: " + notes,
             "visible": 1,
             "groups": [{"groupid": groupid} for groupid in groupids],
             "templates": [{"templateid": "10566"}],
@@ -152,7 +153,7 @@ def process_excel(file_path):
     df["Nombre"] = df["Nombre"].str.strip()
     df["Customer"] = df["Customer"].str.strip()
     df["ONT/ONU"] = df["ONT/ONU"].str.strip()
-    df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID"     + df["Customer"] + " " + df["Localidad"].map(mapa_loc)
+    df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"] + " " + df["Localidad"].map(mapa_loc)
     client_data_dict = df.to_dict(orient="records")
 
     try:

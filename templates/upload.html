@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subir Archivo Excel</title>
+    <title>Create Zabbix hosts - Upload</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Logo -->
         <img src="{{ url_for('static', filename='images/logo_simplefibra.jpg') }}" alt="Logo" class="logo" width="300">
         
-        <h1>Creación de hosts en Zabbix con Excel</h1>
+        <h1>Creación de hosts en Zabbix</h1>
         
         <!-- Flash message -->
         {% with messages = get_flashed_messages() %}
@@ -30,7 +30,7 @@
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <label for="file" class="form-label">Seleccione un archivo Excel:</label>
             <input type="file" name="file" id="file" accept=".xlsx, .xls" required>
-            <button type="submit" class="submit-btn">Subir y Procesar</button>
+            <button type="submit" class="submit-btn">Procesar</button>
         </form>
 
         <a href="/" class="back-link">Volver</a>
