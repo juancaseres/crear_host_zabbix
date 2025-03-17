@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import requests
 import unicodedata
+import time
 
 # Configuración de Flask
 app = Flask(__name__)
@@ -35,7 +36,8 @@ def login_zabbix(url, username, password):
         raise Exception(f"Error al iniciar sesión: {response_json}")
 
 # Función para crear conexión en Zabbix (Estructura JSON)
-def create_host(url, auth_token, hostname, hostip, mac_add, groupids, contact, address, lat, lon, notes):
+def create_host(url, auth_token, hostname, hostip, mac_add, groupids, contact, 
+                address, lat, lon, notes, onu_sn, olt, slot, pon, city):
     data = {
         "jsonrpc": "2.0",
         "method": "host.create",
@@ -56,6 +58,11 @@ def create_host(url, auth_token, hostname, hostip, mac_add, groupids, contact, a
                 "location_lat": lat,
                 "location_lon": lon,
                 "notes": "NAP: " + notes,
+                "serialno_a": onu_sn, 
+                "site_address_a": olt,
+                "site_address_b": slot,
+                "site_address_c": pon,
+                "site_city": city,
             },
         },
         "auth": auth_token,
@@ -141,11 +148,12 @@ def process_excel(file_path):
     }
 
     columns = [
-        "Nombre", "Customer", "Localidad", "OLT", "Feeder", 
+        "Nombre", "Customer", "Localidad", "OLT", "Feeder", "Slot", "PON",
         "NAP", "ONT/ONU", "Dirección IP", "MAC address", "Ubicación de la caja NAP (Coordenadas)", 
         "Dirección", "Numero de telefono"
     ]
-    df = pd.read_excel(file_path, usecols=columns, dtype={"Numero de telefono": str})
+
+    df = pd.read_excel(file_path, usecols=columns,)
     df = df.fillna("N/A").astype(str)
 
     df["Nombre"] = df["Nombre"].apply(quitar_acentos)
@@ -154,6 +162,9 @@ def process_excel(file_path):
     df["Customer"] = df["Customer"].str.strip()
     df["ONT/ONU"] = df["ONT/ONU"].str.strip()
     df["hostname"] = df["Nombre"] + " " + df["ONT/ONU"] + " ID" + df["Customer"] + " " + df["Localidad"].map(mapa_loc)
+    df["OLT"] = df["OLT"].str.strip()
+    df["Slot"] = df["Slot"].str.strip()
+    df["PON"] = df["PON"].str.strip()
     client_data_dict = df.to_dict(orient="records")
 
     try:
@@ -169,11 +180,22 @@ def process_excel(file_path):
         try:
             hostname = row["hostname"]
             groupids = obtener_ids(row["Localidad"], row["OLT"], row["Feeder"], zabbix_group_ids)
-            latitud = row["Ubicación de la caja NAP (Coordenadas)"].split(",")[0].strip()
-            longitud = row["Ubicación de la caja NAP (Coordenadas)"].split(",")[1].strip()
+            
+            try:
+                coordenadas = row["Ubicación de la caja NAP (Coordenadas)"].strip()
+                if "," not in coordenadas:
+                    raise ValueError("Formato de coordenadas inválido: no se encontró una coma.")
+                latitud, longitud = coordenadas.split(",")
+                latitud = latitud.strip()
+                longitud = longitud.strip()
+            except Exception as e:
+                resultados.append(f"Error en las coordenadas para el host {row['hostname']}: {e}")
+                continue
+
             response = create_host(
                 url, auth_token, hostname, row["Dirección IP"].strip(), row["MAC address"], groupids, 
-                row["Numero de telefono"], row["Dirección"].strip(), latitud, longitud, row["NAP"]
+                row["Numero de telefono"], row["Dirección"].strip(), latitud, longitud, row["NAP"],
+                row["ONT/ONU"], row["OLT"], row["Slot"], row["PON"], row["Localidad"]
             )
             resultados.append(response)
         except ValueError as e:
