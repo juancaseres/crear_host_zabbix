@@ -112,7 +112,8 @@ def obtener_ids(localidad, olt, feeder, group_ids_dict):
         "Maracay": "Clientes FTTH POC (Maracay)",
         "Valencia": "Clientes FTTH POC (Valencia)",
         "Barquisimeto": "Clientes FTTH POC (Barquisimeto)",
-        "Caracas": "Clientes FTTH POC (Caracas)"
+        "Caracas (Red propia)": "Clientes FTTH POC (Caracas) - Red propia",
+        "Caracas (Red alquilada)": "Clientes FTTH POC (Caracas) - Red alquilada"
     }
 
     ids = ["35", "34"]
@@ -144,7 +145,8 @@ def process_excel(file_path):
         "Maracay": "MCY OSS",
         "Valencia": "VAL OSS",
         "Barquisimeto": "BTO OSS",
-        "Caracas": "CCS OSS",
+        "Caracas (Red propia)": "CCS OSS",
+        "Caracas (Red alquilada)": "CCS OSS"
     }
 
     columns = [
