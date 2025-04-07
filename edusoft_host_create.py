@@ -116,7 +116,10 @@ def obtener_ids(localidad, olt, feeder, group_ids_dict):
         "Caracas (Red alquilada)": "Clientes FTTH POC (Caracas) - Red alquilada"
     }
 
-    ids = ["35", "34"]
+    if localidad == "Caracas (Red propia)":
+        ids = ["35"]
+    else:
+        ids = ["35","34"]
 
     if group_loc.get(localidad) in group_ids_dict:
         ids.append(str(group_ids_dict[group_loc.get(localidad)]))
