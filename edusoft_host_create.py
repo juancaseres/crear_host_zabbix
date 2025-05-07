@@ -127,12 +127,13 @@ def obtener_ids(localidad, olt, feeder, group_ids_dict):
     else:
         raise ValueError(f"Localidad: '{group_loc.get(localidad)}' no definido en Zabbix")
 
-    if olt in group_ids_dict:
-        ids.append(str(group_ids_dict[olt]))
-    else:
-        raise ValueError(f"OLT: '{olt}' no definida en Zabbix")
+    if olt not in ["No aplica","N/A",""]:
+        if olt in group_ids_dict:
+            ids.append(str(group_ids_dict[olt]))
+        else:
+            raise ValueError(f"OLT: '{olt}' no definida en Zabbix")
 
-    if feeder not in ["No aplica", "N/A"]:
+    if feeder not in ["No aplica","N/A",""]:
         if feeder in group_ids_dict:
             ids.append(str(group_ids_dict[feeder]))
         else:
